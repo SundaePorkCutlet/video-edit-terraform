@@ -1,5 +1,9 @@
 # video-edit-terraform  
 
+## vpc
+
+<img width="969" alt="스크린샷 2024-06-23 오후 3 33 14" src="https://github.com/SundaePorkCutlet/video-edit-terraform/assets/87690981/b0f65b10-9ec3-4f83-b7a1-1e9d3da77172">
+
 
 ### 라우팅 테이블 (Route Table)
 라우팅 테이블은 네트워크 트래픽이 어디로 가야 하는지를 결정하는 규칙(라우트)들의 모음입니다. 각 서브넷은 라우팅 테이블과 연관되어 있으며, 라우팅 테이블은 트래픽이 어떤 네트워크 게이트웨이나 장치로 전달되어야 하는지를 정의합니다. 라우팅 테이블의 주요 목적은 다음과 같습니다:
