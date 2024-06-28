@@ -172,11 +172,11 @@ resource "aws_security_group" "openvpn_sg" {
 }
 
 resource "aws_instance" "openvpn" {
-  ami           = "ami-09a093fa2e3bfca5a" # OpenVPN Access Server AMI ID
-  instance_type = "t2.small"
-  subnet_id     = aws_subnet.my_public_subnet_a.id
+  ami                    = "ami-09a093fa2e3bfca5a" # OpenVPN Access Server AMI ID
+  instance_type          = "t2.small"
+  subnet_id              = aws_subnet.my_public_subnet_a.id
   vpc_security_group_ids = [aws_security_group.openvpn_sg.id]
-  key_name      = var.my_key_name
+  key_name               = var.my_key_name
 
   tags = {
     Name = "OpenVPN-Server"
@@ -185,12 +185,11 @@ resource "aws_instance" "openvpn" {
 
 resource "aws_eip" "openvpn_eip" {
   instance = aws_instance.openvpn.id
- domain  = "vpc"
+  domain   = "vpc"
   tags = {
     Name = "OpenVPN-EIP"
   }
 }
-
 
 # 보안 그룹: 프라이빗 서브넷의 EC2 인스턴스 접근 허용 (Bastion 서버에서만 접근 가능)
 resource "aws_security_group" "private_ec2_sg" {
@@ -215,28 +214,62 @@ resource "aws_security_group_rule" "allow_bastion_to_private" {
   security_group_id        = aws_security_group.private_ec2_sg.id
   source_security_group_id = aws_security_group.openvpn_sg.id
 }
-# 프라이빗 서브넷에 EC2 인스턴스 생성
-resource "aws_instance" "my_private_ec2" {
-  ami           = "ami-01ed8ade75d4eee2f" # ubuntu 22.04 LTS AMI ID
-  instance_type = "t2.micro"
-  subnet_id     = aws_subnet.my_private_subnet_app_a.id
+
+# Jenkins 서버 보안 그룹에서 8080 포트 접근 허용
+resource "aws_security_group_rule" "allow_bastion_to_jenkins" {
+  type                     = "ingress"
+  from_port                = 8080
+  to_port                  = 8080
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.private_ec2_sg.id
+  source_security_group_id = aws_security_group.openvpn_sg.id
+}
+
+# 프라이빗 서브넷에 Jenkins 서버 생성
+resource "aws_instance" "jenkins" {
+  ami                    = "ami-01ed8ade75d4eee2f" # Ubuntu 22.04 LTS AMI ID
+  instance_type          = "t2.micro"
+  subnet_id              = aws_subnet.my_private_subnet_app_a.id
   vpc_security_group_ids = [aws_security_group.private_ec2_sg.id]
-  key_name      = var.my_key_name
+  key_name               = var.my_key_name
 
   tags = {
-    Name = "my-private-ec2"
+    Name = "jenkins"
   }
 }
 
-resource "aws_eip" "my_private_ec2_eip" {
-  instance = aws_instance.my_private_ec2.id
- domain  = "vpc"
+output "jenkins_private_ip" {
+  value = aws_instance.jenkins.private_ip
+}
+
+# 프라이빗 서브넷에 Video Edit 서버 생성
+resource "aws_instance" "video_edit_ec2" {
+  ami                    = "ami-01ed8ade75d4eee2f" # Ubuntu 22.04 LTS AMI ID
+  instance_type          = "t2.micro"
+  subnet_id              = aws_subnet.my_private_subnet_app_a.id
+  vpc_security_group_ids = [aws_security_group.private_ec2_sg.id]
+  key_name               = var.my_key_name
+
   tags = {
-    Name = "my-private-ec2-EIP"
+    Name = "video-edit-ec2"
   }
 }
 
+resource "aws_eip" "video_edit_ec2_eip" {
+  instance = aws_instance.video_edit_ec2.id
+  domain   = "vpc"
+  tags = {
+    Name = "video-edit-ec2-eip"
+  }
+}
 
+output "video_edit_ec2_private_ip" {
+  value = aws_instance.video_edit_ec2.private_ip
+}
+
+output "video_edit_ec2_eip" {
+  value = aws_eip.video_edit_ec2_eip.public_ip
+}
 
 resource "aws_ecr_repository" "my_ecr_frontend" {
   name = "my-ecr-frontend"
@@ -244,7 +277,6 @@ resource "aws_ecr_repository" "my_ecr_frontend" {
     scan_on_push = true
   }
   image_tag_mutability = "MUTABLE"
-
   tags = {
     Name = "my-ecr-front"
   }
@@ -256,7 +288,6 @@ resource "aws_ecr_repository" "my_ecr_backend" {
     scan_on_push = true
   }
   image_tag_mutability = "MUTABLE"
-
   tags = {
     Name = "my-ecr-back"
   }
